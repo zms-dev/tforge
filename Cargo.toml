@@ -1,0 +1,9 @@
+[workspace]
+members = ["tforge", "tforge-bencode"]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = { version = "1.0.79" }
+tokio = { version = "1.35.1" }
+serde = { version = "1.0.195" }
+lazy_static = { version = "1.4.0" }

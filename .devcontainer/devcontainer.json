@@ -1,0 +1,77 @@
+{
+	"name": "Debian",
+	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	"features": {
+		"ghcr.io/devcontainers/features/nix:1": {
+			"multiUser": true,
+			"version": "latest",
+			"extraNixConfig": "experimental-features = nix-command flakes,trusted-users = root vscode"
+		},
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"configureZshAsDefaultShell": true
+		},
+		"ghcr.io/christophermacgown/devcontainer-features/direnv:1": {},
+		"ghcr.io/devcontainers-contrib/features/starship:1": {}
+	},
+	"postCreateCommand": "nix develop --check",
+	"updateContentCommand": "nix develop --build --accept-flake-config",
+	"postStartCommand": "direnv allow",
+	"mounts": [
+		"source=nix,target=/nix,type=volume"
+	],
+	"remoteUser": "root",
+	"containerEnv": {
+		"RUST_LOG": "INFO"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"jnoortheen.nix-ide",
+				"task.vscode-task",
+				"Equinusocio.vsc-material-theme-icons",
+				"1YiB.rust-bundle",
+				"tamasfe.even-better-toml",
+				"wayou.vscode-todo-highlight"
+			],
+			"settings": {
+				"nix.enableLanguageServer": true,
+				"nix.serverPath": "nil",
+				"nix.serverSettings": {
+					"nil": {
+						"formatting": {
+							// Use 'nix fmt' for formatting
+							"command": [
+								"nix",
+								"fmt",
+								"--",
+								"-"
+							]
+						}
+					}
+				},
+				"editor.semanticTokenColorCustomizations": {
+					"enabled": true
+				},
+				"editor.bracketPairColorization.enabled": false,
+				"editor.guides.bracketPairs": "active",
+				"[nix]": {
+					"editor.formatOnSave": true,
+					"editor.defaultFormatter": "jnoortheen.nix-ide"
+				},
+				"[rust]": {
+					"editor.tabSize": 2,
+					"editor.insertSpaces": true,
+					"editor.formatOnSave": true,
+					"editor.defaultFormatter": "rust-lang.rust-analyzer"
+				},
+				"rust-analyzer.linkedProjects": [
+					"${workspaceFolder}/Cargo.toml"
+				],
+				"rust-analyzer.server.extraEnv": {
+					"PATH": "/nix/store/zf2yn0gs445cw4dgzhmyv4rwwkqbrs0c-rust-nightly-2024-03-10/bin",
+				},
+				"rust-analyzer.semanticHighlighting.punctuation.enable": true,
+			}
+		}
+	}
+}
