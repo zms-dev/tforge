@@ -35,7 +35,7 @@
 			],
 			"settings": {
 				"nix.enableLanguageServer": true,
-				"nix.serverPath": "nil",
+				"nix.serverPath": "/nix/store/mblhbcwvxick954fg148pr0nbq5kbcy6-nil-2023-08-09/bin/nil",
 				"nix.serverSettings": {
 					"nil": {
 						"formatting": {

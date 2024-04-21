@@ -31,6 +31,9 @@
             openssl.dev
             pkg-config
             toolchain
+            cargo-expand
+            cargo-watch
+            nil
           ];
 
           buildInputs = with pkgs; [

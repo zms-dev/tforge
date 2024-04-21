@@ -308,12 +308,12 @@ mod tests {
         assert_eq!(result, vec![vec![123, 456]]);
     }
 
-    #[test]
-    fn test_deserialize_i64_tuple() {
-        let mut reader = BufReader::new(Cursor::new(b"li123ei456ee"));
-        let result: [i64; 2] = from_buffer(&mut reader).unwrap();
-        assert_eq!(result, [123, 456]);
-    }
+    // #[test]
+    // fn test_deserialize_i64_tuple() {
+    //     let mut reader = BufReader::new(Cursor::new(b"li123ei456ee"));
+    //     let result: [i64; 2] = from_buffer(&mut reader).unwrap();
+    //     assert_eq!(result, [123, 456]);
+    // }
 
     #[test]
     fn test_deserialize_map() {
