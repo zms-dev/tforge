@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error, Result};
+use crate::error::{Error, Result};
 
 pub const TOKEN_INTEGER: u8 = b'i';
 pub const TOKEN_DICT: u8 = b'd';
@@ -25,21 +25,10 @@ impl TryFrom<u8> for Token {
             TOKEN_LIST => Ok(Token::List),
             TOKEN_END => Ok(Token::End),
             b'0'..=b'9' => Ok(Token::Bytes),
-            _ => Err(anyhow!("Invalid token")),
-        }
-    }
-}
-
-impl TryInto<u8> for Token {
-    type Error = Error;
-
-    fn try_into(self) -> Result<u8> {
-        match self {
-            Token::Int => Ok(TOKEN_INTEGER),
-            Token::List => Ok(TOKEN_LIST),
-            Token::Dict => Ok(TOKEN_DICT),
-            Token::End => Ok(TOKEN_END),
-            Token::Bytes => Err(anyhow!("Bytes token is not supported")),
+            _ => Err(Error::from_syntax(format!(
+                "Unrecognized token: {}",
+                byte as char
+            ))),
         }
     }
 }
@@ -61,23 +50,5 @@ mod tests {
         }
 
         assert!(Token::try_from(b'x').is_err());
-    }
-
-    #[test]
-    fn test_token_try_into() {
-        let int_token: u8 = Token::Int.try_into().unwrap();
-        assert_eq!(int_token, TOKEN_INTEGER);
-
-        let dict_token: u8 = Token::Dict.try_into().unwrap();
-        assert_eq!(dict_token, TOKEN_DICT);
-
-        let list_token: u8 = Token::List.try_into().unwrap();
-        assert_eq!(list_token, TOKEN_LIST);
-
-        let end_token: u8 = Token::End.try_into().unwrap();
-        assert_eq!(end_token, TOKEN_END);
-
-        let bytes_token: Result<u8> = Token::Bytes.try_into();
-        assert!(bytes_token.is_err());
     }
 }

@@ -28,6 +28,7 @@
           name = "shell";
 
           nativeBuildInputs = with pkgs; [
+            gcc
             openssl.dev
             pkg-config
             toolchain

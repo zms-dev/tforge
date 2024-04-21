@@ -1,5 +1,7 @@
-use crate::tokens::{Token, TOKEN_DELIM, TOKEN_END};
-use anyhow::{anyhow, Context, Result};
+use crate::{
+    error::{Error, Result},
+    tokens::{Token, TOKEN_DELIM, TOKEN_END},
+};
 use std::io::BufRead;
 
 pub trait BencodeReader {
@@ -11,37 +13,37 @@ pub trait BencodeReader {
     fn read_of_size(&mut self, size: usize) -> Result<Vec<u8>>;
     fn read_i64(&mut self) -> Result<i64>;
     fn read_bytes(&mut self) -> Result<Vec<u8>>;
+    fn read_string(&mut self) -> Result<String>;
 }
 
 impl<T: BufRead> BencodeReader for T {
     fn peek_token(&mut self) -> Result<Token> {
-        let buf = self.fill_buf().context("Failed to fill buffer")?;
+        let buf = self.fill_buf()?;
         if buf.is_empty() {
-            return Err(anyhow!("Empty buffer"));
+            return Err(Error::EOF);
         }
         Ok(Token::try_from(buf[0])?)
     }
 
     fn consume_current_token(&mut self) -> Result<()> {
-        self.fill_buf().context("Failed to fill buffer")?;
+        self.fill_buf()?;
         self.consume(1);
         Ok(())
     }
 
     fn has_tokens_left(&mut self) -> Result<bool> {
-        let has_left = self
-            .has_data_left()
-            .context("Failed to check if there is data left")?;
+        let has_left = self.has_data_left()?;
         Ok(has_left)
     }
 
     fn read_until_delim(&mut self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
-        self.read_until(TOKEN_DELIM, &mut buf)
-            .context("Failed to read until delimiter")?;
+        self.read_until(TOKEN_DELIM, &mut buf)?;
         if let Some(last) = buf.last() {
             if *last != TOKEN_DELIM {
-                return Err(anyhow!("Buffer expected delimiter token"));
+                return Err(Error::ExpectedDelimiter);
+            } else {
+                buf.pop();
             }
         }
         Ok(buf)
@@ -49,11 +51,12 @@ impl<T: BufRead> BencodeReader for T {
 
     fn read_until_end(&mut self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
-        self.read_until(TOKEN_END, &mut buf)
-            .context("Failed to read until end token")?;
+        self.read_until(TOKEN_END, &mut buf)?;
         if let Some(last) = buf.last() {
             if *last != TOKEN_END {
-                return Err(anyhow!("Buffer expected end token"));
+                return Err(Error::ExpectedEnd);
+            } else {
+                buf.pop();
             }
         }
         Ok(buf)
@@ -61,41 +64,29 @@ impl<T: BufRead> BencodeReader for T {
 
     fn read_of_size(&mut self, size: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; size];
-        self.read_exact(&mut buf)
-            .context("Failed to read of size")?;
+        self.read_exact(&mut buf)?;
         Ok(buf)
     }
 
     fn read_i64(&mut self) -> Result<i64> {
         let buf = self.read_until_end()?;
-        let int_str = String::from_utf8(buf).context("Failed to convert integer buffer to UTF8")?;
-        let parsed_int = &int_str[..int_str.len() - 1]
-            .parse::<i64>()
-            .context("Faile to parse integer string to i64")?;
-        Ok(*parsed_int)
+        let int_str = String::from_utf8(buf)?;
+        let parsed_int = int_str.parse::<i64>()?;
+        Ok(parsed_int)
     }
 
     fn read_bytes(&mut self) -> Result<Vec<u8>> {
         let length_buf = self.read_until_delim()?;
-        let lenth_str =
-            String::from_utf8(length_buf).context("Failed to convert buffer length to UTF8")?;
-        let length_int = &lenth_str[..lenth_str.len() - 1]
-            .parse::<u64>()
-            .context("Faile to parse buffer length string to i64")?;
-        let buf = self.read_of_size(*length_int as usize)?;
+        let lenth_str = String::from_utf8(length_buf)?;
+        let length_int = lenth_str.parse::<u64>()?;
+        let buf = self.read_of_size(length_int as usize)?;
         Ok(buf)
     }
-}
 
-impl Iterator for dyn BencodeReader {
-    type Item = Result<Token>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.has_tokens_left() {
-            Err(err) => return Some(Err(err)),
-            Ok(false) => return None,
-            Ok(true) => Some(self.peek_token()),
-        }
+    fn read_string(&mut self) -> Result<String> {
+        let buf = self.read_bytes()?;
+        let string = String::from_utf8(buf)?;
+        Ok(string)
     }
 }
 
@@ -181,15 +172,15 @@ mod tests {
             assert_eq!(reader.fill_buf().unwrap(), b"");
 
             let mut reader = Cursor::new(b":hello world");
-            assert_eq!(reader.read_until_delim().unwrap(), b":");
+            assert_eq!(reader.read_until_delim().unwrap(), b"");
             assert_eq!(reader.fill_buf().unwrap(), b"hello world");
 
             let mut reader = Cursor::new(b"hello world:");
-            assert_eq!(reader.read_until_delim().unwrap(), b"hello world:");
+            assert_eq!(reader.read_until_delim().unwrap(), b"hello world");
             assert_eq!(reader.fill_buf().unwrap(), b"");
 
             let mut reader = Cursor::new(b"hello:world");
-            assert_eq!(reader.read_until_delim().unwrap(), b"hello:");
+            assert_eq!(reader.read_until_delim().unwrap(), b"hello");
             assert_eq!(reader.fill_buf().unwrap(), b"world");
         }
 
@@ -203,15 +194,15 @@ mod tests {
             assert_eq!(reader.fill_buf().unwrap(), b"");
 
             let mut reader = Cursor::new(b"12345e");
-            assert_eq!(reader.read_until_end().unwrap(), b"12345e");
+            assert_eq!(reader.read_until_end().unwrap(), b"12345");
             assert_eq!(reader.fill_buf().unwrap(), b"");
 
             let mut reader = Cursor::new(b"e12345");
-            assert_eq!(reader.read_until_end().unwrap(), b"e");
+            assert_eq!(reader.read_until_end().unwrap(), b"");
             assert_eq!(reader.fill_buf().unwrap(), b"12345");
 
             let mut reader = Cursor::new(b"123e45");
-            assert_eq!(reader.read_until_end().unwrap(), b"123e");
+            assert_eq!(reader.read_until_end().unwrap(), b"123");
             assert_eq!(reader.fill_buf().unwrap(), b"45");
         }
 
@@ -277,6 +268,33 @@ mod tests {
 
             let mut reader = Cursor::new(b"100:hello world");
             assert!(reader.read_bytes().is_err());
+            assert_eq!(reader.fill_buf().unwrap(), b"hello world");
+        }
+
+        #[test]
+        fn test_read_string() {
+            let mut reader = Cursor::new(b"5:hello");
+            assert_eq!(reader.read_string().unwrap(), "hello");
+            assert_eq!(reader.fill_buf().unwrap(), b"");
+
+            let mut reader = Cursor::new(b"0:");
+            assert_eq!(reader.read_string().unwrap(), "");
+            assert_eq!(reader.fill_buf().unwrap(), b"");
+
+            let mut reader = Cursor::new(b"5:hello world");
+            assert_eq!(reader.read_string().unwrap(), "hello");
+            assert_eq!(reader.fill_buf().unwrap(), b" world");
+
+            let mut reader = Cursor::new(b"5:hello5:world");
+            assert_eq!(reader.read_string().unwrap(), "hello");
+            assert_eq!(reader.fill_buf().unwrap(), b"5:world");
+
+            let mut reader = Cursor::new(b"11:hello world");
+            assert_eq!(reader.read_string().unwrap(), "hello world");
+            assert_eq!(reader.fill_buf().unwrap(), b"");
+
+            let mut reader = Cursor::new(b"100:hello world");
+            assert!(reader.read_string().is_err());
             assert_eq!(reader.fill_buf().unwrap(), b"hello world");
         }
     }

@@ -1,35 +1,40 @@
 use crate::{
-    decoder,
     error::{Error, Result},
+    reader::BencodeReader,
+    tokens::Token,
 };
-use std::{io::BufRead, str};
 
-pub struct Deserializer<'de, R: BufRead> {
-    decoder: decoder::Decoder<'de, R>,
+pub struct Deserializer<'de, R: BencodeReader> {
+    reader: &'de mut R,
 }
 
-impl<'de, R: BufRead> Deserializer<'de, R> {
+impl<'de, R: BencodeReader> Deserializer<'de, R> {
     pub fn from_buffer(reader: &'de mut R) -> Self {
-        Deserializer {
-            decoder: decoder::Decoder::new(reader),
-        }
+        Deserializer { reader }
     }
 }
 
-pub fn from_buffer<'a, R: BufRead, T>(reader: &'a mut R) -> Result<T>
+pub fn from_buffer<'a, R: BencodeReader, T>(reader: &'a mut R) -> Result<T>
 where
     T: serde::Deserialize<'a>,
 {
     let mut deserializer = Deserializer::from_buffer(reader);
-    let t = T::deserialize(&mut deserializer)?;
-    if deserializer.decoder.has_data_left()? {
-        Err(Error::TrailingData)
-    } else {
-        Ok(t)
-    }
+
+    T::deserialize(&mut deserializer).and_then(|result| {
+        deserializer
+            .reader
+            .has_tokens_left()
+            .and_then(|has_tokens_left| {
+                if has_tokens_left {
+                    Err(Error::TrailingData)
+                } else {
+                    Ok(result)
+                }
+            })
+    })
 }
 
-impl<'de, R: BufRead> serde::de::Deserializer<'de> for &mut Deserializer<'de, R> {
+impl<'de, R: BencodeReader> serde::de::Deserializer<'de> for &mut Deserializer<'de, R> {
     type Error = Error;
 
     #[inline]
@@ -37,16 +42,22 @@ impl<'de, R: BufRead> serde::de::Deserializer<'de> for &mut Deserializer<'de, R>
     where
         V: serde::de::Visitor<'de>,
     {
-        self.decoder
-            .next()
-            .ok_or(Error::InvalidSyntax("unexpected end"))?
-            .and_then(|node| match node {
-                decoder::BencodeNode::Int(i) => visitor.visit_i64(i),
-                decoder::BencodeNode::Bytes(b) => visitor.visit_bytes(b.as_ref()),
-                decoder::BencodeNode::List => visitor.visit_seq(DeserializerAccess::new(self)),
-                decoder::BencodeNode::Map => visitor.visit_map(DeserializerAccess::new(self)),
-                decoder::BencodeNode::End => Err(Error::InvalidSyntax("unexpected end")),
-            })
+        self.reader.peek_token().and_then(|token| match token {
+            Token::Int => {
+                self.reader.consume_current_token()?;
+                visitor.visit_i64(self.reader.read_i64()?)
+            }
+            Token::Bytes => visitor.visit_bytes(self.reader.read_bytes()?.as_ref()),
+            Token::List => {
+                self.reader.consume_current_token()?;
+                visitor.visit_seq(DeserializerAccess::new(self))
+            }
+            Token::Dict => {
+                self.reader.consume_current_token()?;
+                visitor.visit_map(DeserializerAccess::new(self))
+            }
+            Token::End => Err(Error::from_syntax("Unexpected end")),
+        })
     }
 
     serde::forward_to_deserialize_any! {
@@ -87,18 +98,13 @@ impl<'de, R: BufRead> serde::de::Deserializer<'de> for &mut Deserializer<'de, R>
     where
         V: serde::de::Visitor<'de>,
     {
-        visitor.visit_str(
-            &self
-                .decoder
-                .next()
-                .ok_or(Error::InvalidSyntax("unexpected end"))?
-                .and_then(|node| match node {
-                    decoder::BencodeNode::Bytes(bytes) => {
-                        String::from_utf8(bytes).map_err(Error::from_utf8)
-                    }
-                    _ => Err(Error::InvalidSyntax("expected bytes")),
-                })?,
-        )
+        self.reader.peek_token().and_then(|token| match token {
+            Token::Bytes => {
+                let string = self.reader.read_string()?;
+                visitor.visit_str(&string)
+            }
+            _ => Err(Error::ExpectedBytes),
+        })
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
@@ -119,24 +125,22 @@ impl<'de, R: BufRead> serde::de::Deserializer<'de> for &mut Deserializer<'de, R>
     where
         V: serde::de::Visitor<'de>,
     {
-        self.decoder
-            .next()
-            .ok_or(Error::InvalidSyntax("unexpected end"))?
-            .and_then(|node| match node {
-                decoder::BencodeNode::List => {
-                    visitor.visit_seq(DeserializerAccess::new_with_len(self, size))
-                }
-                _ => Err(Error::InvalidSyntax("expected list")),
-            })
+        self.reader.peek_token().and_then(|token| match token {
+            Token::List => {
+                self.reader.consume_current_token()?;
+                visitor.visit_seq(DeserializerAccess::new_with_len(self, size))
+            }
+            _ => Err(Error::ExpectedList),
+        })
     }
 }
 
-struct DeserializerAccess<'a, 'de: 'a, R: BufRead> {
+struct DeserializerAccess<'a, 'de: 'a, R: BencodeReader> {
     deserializer: &'a mut Deserializer<'de, R>,
     len: Option<usize>,
 }
 
-impl<'a, 'de, R: BufRead> DeserializerAccess<'a, 'de, R> {
+impl<'a, 'de, R: BencodeReader> DeserializerAccess<'a, 'de, R> {
     fn new(deserializer: &'a mut Deserializer<'de, R>) -> Self {
         DeserializerAccess {
             deserializer,
@@ -152,46 +156,61 @@ impl<'a, 'de, R: BufRead> DeserializerAccess<'a, 'de, R> {
     }
 }
 
-impl<'a, 'de, R: BufRead> serde::de::SeqAccess<'de> for DeserializerAccess<'a, 'de, R> {
+impl<'a, 'de, R: BencodeReader> serde::de::SeqAccess<'de> for DeserializerAccess<'a, 'de, R> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        let result = match self.deserializer.decoder.try_consume_end_token() {
-            Some(Ok(())) => return Ok(None),
-            Some(Err(err)) => return Err(err),
-            None => {
-                if let Some(len) = self.len {
-                    if len == 0 {
-                        return Err(Error::InvalidSyntax("expected end"));
-                    }
+        let result = self
+            .deserializer
+            .reader
+            .peek_token()
+            .and_then(|token| match token {
+                Token::End => {
+                    self.deserializer.reader.consume_current_token()?;
+                    Ok(None)
                 }
-                seed.deserialize(&mut *self.deserializer).map(Some)
-            }
-        };
+                _ => seed.deserialize(&mut *self.deserializer).map(Some),
+            });
 
         if let Some(len) = self.len {
-            self.len = Some(len - 1);
+            let len = len - 1;
+            self.len = Some(len);
+            if len == 0 {
+                self.deserializer.reader.peek_token().and_then(|token| {
+                    if token == Token::End {
+                        self.deserializer.reader.consume_current_token()?;
+                        Ok(())
+                    } else {
+                        Err(Error::ExpectedEnd)
+                    }
+                })?;
+            }
         }
 
         result
     }
 }
 
-impl<'a, 'de, R: BufRead> serde::de::MapAccess<'de> for DeserializerAccess<'a, 'de, R> {
+impl<'a, 'de, R: BencodeReader> serde::de::MapAccess<'de> for DeserializerAccess<'a, 'de, R> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        match self.deserializer.decoder.try_consume_end_token() {
-            Some(Ok(())) => return Ok(None),
-            Some(Err(err)) => return Err(err),
-            None => seed.deserialize(&mut *self.deserializer).map(Some),
-        }
+        self.deserializer
+            .reader
+            .peek_token()
+            .and_then(|token| match token {
+                Token::End => {
+                    self.deserializer.reader.consume_current_token()?;
+                    Ok(None)
+                }
+                _ => seed.deserialize(&mut *self.deserializer).map(Some),
+            })
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
@@ -202,7 +221,7 @@ impl<'a, 'de, R: BufRead> serde::de::MapAccess<'de> for DeserializerAccess<'a, '
     }
 }
 
-impl<'a, 'de, R: BufRead> serde::de::EnumAccess<'de> for DeserializerAccess<'a, 'de, R> {
+impl<'a, 'de, R: BencodeReader> serde::de::EnumAccess<'de> for DeserializerAccess<'a, 'de, R> {
     type Error = Error;
     type Variant = Self;
 
@@ -214,7 +233,7 @@ impl<'a, 'de, R: BufRead> serde::de::EnumAccess<'de> for DeserializerAccess<'a, 
     }
 }
 
-impl<'a, 'de, R: BufRead> serde::de::VariantAccess<'de> for DeserializerAccess<'a, 'de, R> {
+impl<'a, 'de, R: BencodeReader> serde::de::VariantAccess<'de> for DeserializerAccess<'a, 'de, R> {
     type Error = Error;
 
     fn unit_variant(self) -> Result<()> {
@@ -233,15 +252,17 @@ impl<'a, 'de, R: BufRead> serde::de::VariantAccess<'de> for DeserializerAccess<'
         V: serde::de::Visitor<'de>,
     {
         self.deserializer
-            .decoder
-            .next()
-            .ok_or(Error::InvalidSyntax("unexpected end"))?
-            .and_then(|node| match node {
-                decoder::BencodeNode::List => visitor.visit_seq(DeserializerAccess::new_with_len(
-                    &mut *self.deserializer,
-                    len,
-                )),
-                _ => Err(Error::InvalidSyntax("expected list")),
+            .reader
+            .peek_token()
+            .and_then(|token| match token {
+                Token::List => {
+                    self.deserializer.reader.consume_current_token()?;
+                    visitor.visit_seq(DeserializerAccess::new_with_len(
+                        &mut *self.deserializer,
+                        len,
+                    ))
+                }
+                _ => Err(Error::ExpectedList),
             })
     }
 
@@ -256,6 +277,7 @@ impl<'a, 'de, R: BufRead> serde::de::VariantAccess<'de> for DeserializerAccess<'
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::Deserialize;
     use std::io::{BufReader, Cursor};
 
     #[test]
@@ -308,12 +330,12 @@ mod tests {
         assert_eq!(result, vec![vec![123, 456]]);
     }
 
-    // #[test]
-    // fn test_deserialize_i64_tuple() {
-    //     let mut reader = BufReader::new(Cursor::new(b"li123ei456ee"));
-    //     let result: [i64; 2] = from_buffer(&mut reader).unwrap();
-    //     assert_eq!(result, [123, 456]);
-    // }
+    #[test]
+    fn test_deserialize_i64_tuple() {
+        let mut reader = BufReader::new(Cursor::new(b"li123ei456ee"));
+        let result: [i64; 2] = from_buffer(&mut reader).unwrap();
+        assert_eq!(result, [123, 456]);
+    }
 
     #[test]
     fn test_deserialize_map() {
@@ -322,5 +344,24 @@ mod tests {
         let mut expected = std::collections::HashMap::new();
         expected.insert("foo".to_string(), "bar".to_string());
         assert_eq!(result, expected);
+    }
+
+    #[derive(Deserialize, PartialEq, Debug)]
+    struct TestStruct {
+        int_prop: i64,
+        string_prop: String,
+    }
+
+    #[test]
+    fn test_deserialize_struct() {
+        let mut reader = BufReader::new(Cursor::new(b"d8:int_propi123e11:string_prop3:baze"));
+        let result: TestStruct = from_buffer(&mut reader).unwrap();
+        assert_eq!(
+            result,
+            TestStruct {
+                int_prop: 123,
+                string_prop: "baz".to_string(),
+            }
+        );
     }
 }

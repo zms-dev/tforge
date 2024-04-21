@@ -68,9 +68,10 @@
 					"${workspaceFolder}/Cargo.toml"
 				],
 				"rust-analyzer.server.extraEnv": {
-					"PATH": "/nix/store/zf2yn0gs445cw4dgzhmyv4rwwkqbrs0c-rust-nightly-2024-03-10/bin",
+					"PATH": "/nix/store/zf2yn0gs445cw4dgzhmyv4rwwkqbrs0c-rust-nightly-2024-03-10/bin:/usr/bin",
 				},
 				"rust-analyzer.semanticHighlighting.punctuation.enable": true,
+				"rust-analyzer.procMacro.attributes.enable": true
 			}
 		}
 	}

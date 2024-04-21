@@ -2,18 +2,24 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    TrailingData,
-    InvalidSyntax(&'static str),
-    EmptyBuffer,
-    InvalidToken(char),
+    Internal(String),
     IO(std::io::Error),
     UTF8(std::string::FromUtf8Error),
     ParseInt(std::num::ParseIntError),
-    ExpectedByte(u8),
-    Serde(String),
+    Syntax(String),
+    EOF,
+    TrailingData,
+    ExpectedBytes,
+    ExpectedDelimiter,
+    ExpectedEnd,
+    ExpectedList,
 }
 
 impl Error {
+    pub fn from_internal(err: String) -> Self {
+        Error::Internal(err)
+    }
+
     pub fn from_io(err: std::io::Error) -> Self {
         Error::IO(err)
     }
@@ -26,12 +32,8 @@ impl Error {
         Error::ParseInt(err)
     }
 
-    pub fn from_serde(err: String) -> Self {
-        Error::Serde(err)
-    }
-
-    pub fn expected_byte(expected: u8) -> Self {
-        Error::ExpectedByte(expected)
+    pub fn from_syntax(err: impl Into<String>) -> Self {
+        Error::Syntax(err.into())
     }
 }
 
@@ -40,23 +42,47 @@ impl std::error::Error for Error {}
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::TrailingData => write!(f, "Trailing data"),
-            Error::InvalidSyntax(str) => write!(f, "Invalid syntax: {}", str),
-            Error::EmptyBuffer => write!(f, "Empty buffer"),
+            Error::Internal(err) => write!(f, "Internal error: {}", err),
             Error::IO(err) => write!(f, "IO error: {}", err),
-            Error::UTF8(err) => write!(f, "UTF-8 error: {}", err),
+            Error::UTF8(err) => write!(f, "UTF8 error: {}", err),
             Error::ParseInt(err) => write!(f, "ParseInt error: {}", err),
-            Error::ExpectedByte(expected) => {
-                write!(f, "Expected byte: {}", *expected as char)
-            }
-            Error::Serde(err) => write!(f, "Serde error: {}", err),
-            Error::InvalidToken(c) => write!(f, "Invalid token: {}", *c),
+            Error::EOF => write!(f, "EOF"),
+            Error::ExpectedBytes => write!(f, "Expected bytes"),
+            Error::ExpectedDelimiter => write!(f, "Expected delimiter"),
+            Error::ExpectedEnd => write!(f, "Expected end"),
+            Error::ExpectedList => write!(f, "Expected list"),
+            Error::TrailingData => write!(f, "Trailing data"),
+            Error::Syntax(err) => write!(f, "Syntax error: {}", err),
         }
     }
 }
 
 impl serde::de::Error for Error {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Error::from_serde(msg.to_string())
+        Error::from_internal(msg.to_string())
+    }
+}
+
+impl serde::ser::Error for Error {
+    fn custom<T: std::fmt::Display>(msg: T) -> Self {
+        Error::from_internal(msg.to_string())
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::from_io(err)
+    }
+}
+
+impl From<std::string::FromUtf8Error> for Error {
+    fn from(err: std::string::FromUtf8Error) -> Self {
+        Error::from_utf8(err)
+    }
+}
+
+impl From<std::num::ParseIntError> for Error {
+    fn from(err: std::num::ParseIntError) -> Self {
+        Error::from_parse_int(err)
     }
 }
