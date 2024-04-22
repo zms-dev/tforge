@@ -13,6 +13,7 @@ pub enum Error {
     ExpectedDelimiter,
     ExpectedEnd,
     ExpectedList,
+    UnsupportedType(std::any::TypeId),
 }
 
 impl Error {
@@ -39,6 +40,10 @@ impl Error {
     pub fn from_trailing_data(data: Vec<u8>) -> Self {
         Error::TrailingData(data)
     }
+
+    pub fn from_unsupported_type<T: 'static>() -> Self {
+        Error::UnsupportedType(std::any::TypeId::of::<T>())
+    }
 }
 
 impl std::error::Error for Error {}
@@ -59,6 +64,9 @@ impl std::fmt::Display for Error {
                 write!(f, "Trailing data: {}", String::from_utf8_lossy(data))
             }
             Error::Syntax(err) => write!(f, "Syntax error: {}", err),
+            Error::UnsupportedType(type_id) => {
+                write!(f, "Unsupported type: {:?}", type_id)
+            }
         }
     }
 }

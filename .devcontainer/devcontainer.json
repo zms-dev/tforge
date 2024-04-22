@@ -17,7 +17,9 @@
 	"updateContentCommand": "nix develop --build --accept-flake-config",
 	"postStartCommand": "direnv allow",
 	"mounts": [
-		"source=nix,target=/nix,type=volume"
+		"source=nix,target=/nix,type=volume",
+		"source=target,target=${containerWorkspaceFolder}/target,type=volume",
+		"source=direnv,target=${containerWorkspaceFolder}/.direnv,type=volume"
 	],
 	"remoteUser": "root",
 	"containerEnv": {
