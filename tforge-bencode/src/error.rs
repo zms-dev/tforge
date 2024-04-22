@@ -8,7 +8,7 @@ pub enum Error {
     ParseInt(std::num::ParseIntError),
     Syntax(String),
     EOF,
-    TrailingData,
+    TrailingData(Vec<u8>),
     ExpectedBytes,
     ExpectedDelimiter,
     ExpectedEnd,
@@ -35,6 +35,10 @@ impl Error {
     pub fn from_syntax(err: impl Into<String>) -> Self {
         Error::Syntax(err.into())
     }
+
+    pub fn from_trailing_data(data: Vec<u8>) -> Self {
+        Error::TrailingData(data)
+    }
 }
 
 impl std::error::Error for Error {}
@@ -51,7 +55,9 @@ impl std::fmt::Display for Error {
             Error::ExpectedDelimiter => write!(f, "Expected delimiter"),
             Error::ExpectedEnd => write!(f, "Expected end"),
             Error::ExpectedList => write!(f, "Expected list"),
-            Error::TrailingData => write!(f, "Trailing data"),
+            Error::TrailingData(data) => {
+                write!(f, "Trailing data: {}", String::from_utf8_lossy(data))
+            }
             Error::Syntax(err) => write!(f, "Syntax error: {}", err),
         }
     }

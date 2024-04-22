@@ -51,12 +51,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.82"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f538837af36e6f6a9be0faa67f9a314f8119e4e4b5867c6ab40ed60360142519"
-
-[[package]]
 name = "clap"
 version = "4.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -174,8 +168,15 @@ dependencies = [
 name = "tforge-bencode"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "serde",
+]
+
+[[package]]
+name = "tforge-metainfo"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tforge-bencode",
 ]
 
 [[package]]

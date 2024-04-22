@@ -26,7 +26,7 @@ where
             .has_tokens_left()
             .and_then(|has_tokens_left| {
                 if has_tokens_left {
-                    Err(Error::TrailingData)
+                    Err(Error::from_trailing_data(deserializer.reader.read()?))
                 } else {
                     Ok(result)
                 }
@@ -103,7 +103,7 @@ impl<'de, R: BencodeReader> serde::de::Deserializer<'de> for &mut Deserializer<'
                 let string = self.reader.read_string()?;
                 visitor.visit_str(&string)
             }
-            _ => Err(Error::ExpectedBytes),
+            t => Err(Error::ExpectedBytes),
         })
     }
 
@@ -299,7 +299,7 @@ mod tests {
         let mut reader = BufReader::new(Cursor::new(b"i123e123"));
         let result: Result<i64> = from_buffer(&mut reader);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Error::TrailingData));
+        assert!(matches!(result.unwrap_err(), Error::TrailingData(_)));
     }
 
     #[test]
@@ -344,6 +344,13 @@ mod tests {
         let mut expected = std::collections::HashMap::new();
         expected.insert("foo".to_string(), "bar".to_string());
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_deserialize_option_some() {
+        let mut reader = BufReader::new(Cursor::new(b"i123e"));
+        let result: Option<i64> = from_buffer(&mut reader).unwrap();
+        assert_eq!(result, Some(123));
     }
 
     #[derive(Deserialize, PartialEq, Debug)]

@@ -14,6 +14,7 @@ pub trait BencodeReader {
     fn read_i64(&mut self) -> Result<i64>;
     fn read_bytes(&mut self) -> Result<Vec<u8>>;
     fn read_string(&mut self) -> Result<String>;
+    fn read(&mut self) -> Result<Vec<u8>>;
 }
 
 impl<T: BufRead> BencodeReader for T {
@@ -88,13 +89,17 @@ impl<T: BufRead> BencodeReader for T {
         let string = String::from_utf8(buf)?;
         Ok(string)
     }
+
+    fn read(&mut self) -> Result<Vec<u8>> {
+        let buf = self.fill_buf().map(|buf| buf.to_vec())?;
+        Ok(buf)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     mod bufread_impl {
         use super::super::*;
-        use crate::tokens::Token;
         use std::io::Cursor;
 
         #[test]
