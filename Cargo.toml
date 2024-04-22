@@ -1,5 +1,13 @@
 [workspace]
-members = ["tforge", "tforge-bencode", "tforge-metainfo"]
+members = [
+    "tforge", 
+    "tforge-bencode", 
+    "tforge-metainfo", 
+    "tforge-peer", 
+    "tforge-tracker", 
+    "tforge-client",
+    "tforge-server",
+]
 resolver = "2"
 
 [workspace.dependencies]

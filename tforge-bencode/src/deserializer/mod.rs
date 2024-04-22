@@ -9,16 +9,16 @@ pub struct Deserializer<'de, R: BencodeReader> {
 }
 
 impl<'de, R: BencodeReader> Deserializer<'de, R> {
-    pub fn from_buffer(reader: &'de mut R) -> Self {
+    pub fn from_reader(reader: &'de mut R) -> Self {
         Deserializer { reader }
     }
 }
 
-pub fn from_buffer<'a, R: BencodeReader, T>(reader: &'a mut R) -> Result<T>
+pub fn from_reader<'a, R: BencodeReader, T>(reader: &'a mut R) -> Result<T>
 where
     T: serde::Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::from_buffer(reader);
+    let mut deserializer = Deserializer::from_reader(reader);
 
     T::deserialize(&mut deserializer).and_then(|result| {
         deserializer
@@ -103,7 +103,7 @@ impl<'de, R: BencodeReader> serde::de::Deserializer<'de> for &mut Deserializer<'
                 let string = self.reader.read_string()?;
                 visitor.visit_str(&string)
             }
-            t => Err(Error::ExpectedBytes),
+            _ => Err(Error::ExpectedBytes),
         })
     }
 
@@ -283,21 +283,21 @@ mod tests {
     #[test]
     fn test_deserialize_i64() {
         let mut reader = BufReader::new(Cursor::new(b"i123e"));
-        let result: i64 = from_buffer(&mut reader).unwrap();
+        let result: i64 = from_reader(&mut reader).unwrap();
         assert_eq!(result, 123);
     }
 
     #[test]
     fn test_deserialize_negative_i64() {
         let mut reader = BufReader::new(Cursor::new(b"i-123e"));
-        let result: i64 = from_buffer(&mut reader).unwrap();
+        let result: i64 = from_reader(&mut reader).unwrap();
         assert_eq!(result, -123);
     }
 
     #[test]
     fn test_deserialize_i64_errors_with_trailing_data() {
         let mut reader = BufReader::new(Cursor::new(b"i123e123"));
-        let result: Result<i64> = from_buffer(&mut reader);
+        let result: Result<i64> = from_reader(&mut reader);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), Error::TrailingData(_)));
     }
@@ -305,42 +305,42 @@ mod tests {
     #[test]
     fn test_deserialize_bytes_to_string() {
         let mut reader = BufReader::new(Cursor::new(b"4:spam"));
-        let result: String = from_buffer(&mut reader).unwrap();
+        let result: String = from_reader(&mut reader).unwrap();
         assert_eq!(result, "spam");
     }
 
     #[test]
     fn test_deserialize_string_list() {
         let mut reader = BufReader::new(Cursor::new(b"l3:foo3:bare"));
-        let result: Vec<String> = from_buffer(&mut reader).unwrap();
+        let result: Vec<String> = from_reader(&mut reader).unwrap();
         assert_eq!(result, vec!["foo".to_string(), "bar".to_string()]);
     }
 
     #[test]
     fn test_deserialize_i64_list() {
         let mut reader = BufReader::new(Cursor::new(b"li123ei456ee"));
-        let result: Vec<i64> = from_buffer(&mut reader).unwrap();
+        let result: Vec<i64> = from_reader(&mut reader).unwrap();
         assert_eq!(result, vec![123, 456]);
     }
 
     #[test]
     fn test_deserialize_i64_list_inside_list() {
         let mut reader = BufReader::new(Cursor::new(b"lli123ei456eee"));
-        let result: Vec<Vec<i64>> = from_buffer(&mut reader).unwrap();
+        let result: Vec<Vec<i64>> = from_reader(&mut reader).unwrap();
         assert_eq!(result, vec![vec![123, 456]]);
     }
 
     #[test]
     fn test_deserialize_i64_tuple() {
         let mut reader = BufReader::new(Cursor::new(b"li123ei456ee"));
-        let result: [i64; 2] = from_buffer(&mut reader).unwrap();
+        let result: [i64; 2] = from_reader(&mut reader).unwrap();
         assert_eq!(result, [123, 456]);
     }
 
     #[test]
     fn test_deserialize_map() {
         let mut reader = BufReader::new(Cursor::new(b"d3:foo3:bare"));
-        let result: std::collections::HashMap<String, String> = from_buffer(&mut reader).unwrap();
+        let result: std::collections::HashMap<String, String> = from_reader(&mut reader).unwrap();
         let mut expected = std::collections::HashMap::new();
         expected.insert("foo".to_string(), "bar".to_string());
         assert_eq!(result, expected);
@@ -349,7 +349,7 @@ mod tests {
     #[test]
     fn test_deserialize_option_some() {
         let mut reader = BufReader::new(Cursor::new(b"i123e"));
-        let result: Option<i64> = from_buffer(&mut reader).unwrap();
+        let result: Option<i64> = from_reader(&mut reader).unwrap();
         assert_eq!(result, Some(123));
     }
 
@@ -362,7 +362,7 @@ mod tests {
     #[test]
     fn test_deserialize_struct() {
         let mut reader = BufReader::new(Cursor::new(b"d8:int_propi123e11:string_prop3:baze"));
-        let result: TestStruct = from_buffer(&mut reader).unwrap();
+        let result: TestStruct = from_reader(&mut reader).unwrap();
         assert_eq!(
             result,
             TestStruct {

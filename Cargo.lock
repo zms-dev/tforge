@@ -172,12 +172,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "tforge-client"
+version = "0.1.0"
+
+[[package]]
 name = "tforge-metainfo"
 version = "0.1.0"
 dependencies = [
  "serde",
  "tforge-bencode",
 ]
+
+[[package]]
+name = "tforge-peer"
+version = "0.1.0"
+
+[[package]]
+name = "tforge-server"
+version = "0.1.0"
+
+[[package]]
+name = "tforge-tracker"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-ident"

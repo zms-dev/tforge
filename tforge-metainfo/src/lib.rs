@@ -111,7 +111,7 @@ mod tests {
         let test_file = test_data_dir.join("ubuntu-23.10.1-desktop-amd64.iso.torrent");
         let file = std::fs::File::open(test_file).unwrap();
         let mut reader = std::io::BufReader::new(file);
-        let mut deserializer = Deserializer::from_buffer(&mut reader);
+        let mut deserializer = Deserializer::from_reader(&mut reader);
         let got: MetaInfo = serde::Deserialize::deserialize(&mut deserializer).unwrap();
         let expected = MetaInfo {
             announce: "https://torrent.ubuntu.com/announce".to_string(),
