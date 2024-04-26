@@ -2,8 +2,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct MetaInfo {
-    /// A dictionary that describes the file(s) of the torrent.
-    pub info: Info,
+    /// NOTE: All fields must be sorted alphabetically!
 
     /// The announce URL of the tracker
     pub announce: String,
@@ -13,10 +12,6 @@ pub struct MetaInfo {
     #[serde(rename = "announce-list")]
     pub announce_list: Option<Vec<Vec<String>>>,
 
-    /// The creation time of the torrent
-    #[serde(rename = "creation date", with = "optional_system_time")]
-    pub creation_date: Option<std::time::SystemTime>,
-
     /// Free-form textual comments of the author
     pub comment: Option<String>,
 
@@ -24,12 +19,24 @@ pub struct MetaInfo {
     #[serde(rename = "created by")]
     pub created_by: Option<String>,
 
+    /// The creation time of the torrent
+    #[serde(rename = "creation date", with = "optional_system_time")]
+    pub creation_date: Option<std::time::SystemTime>,
+
     /// The string encoding format used to generate the pieces part of the info dictionary
     pub encoding: Option<String>,
+
+    /// A dictionary that describes the file(s) of the torrent.
+    pub info: Info,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Info {
+    /// NOTE: All fields must be sorted alphabetically!
+
+    #[serde(flatten)]
+    pub file_info: FileInfo,
+
     pub name: String,
 
     #[serde(rename = "piece length")]
@@ -37,16 +44,18 @@ pub struct Info {
 
     #[serde(with = "pieces_bytes")]
     pub pieces: Vec<[u8; 20]>,
-
-    #[serde(flatten)]
-    pub file_info: FileInfo,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum FileInfo {
-    SingleFile { length: usize },
-    MultiFile { files: Vec<File> },
+    /// NOTE: All fields must be sorted alphabetically!
+    SingleFile {
+        length: usize,
+    },
+    MultiFile {
+        files: Vec<File>,
+    },
 }
 
 #[derive(Deserialize, Debug, PartialEq)]

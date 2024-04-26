@@ -225,11 +225,11 @@ impl<'a, 'de, R: BencodeReader> serde::de::EnumAccess<'de> for DeserializerAcces
     type Error = Error;
     type Variant = Self;
 
-    fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self)>
+    fn variant_seed<V>(self, _seed: V) -> Result<(V::Value, Self)>
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        Ok((seed.deserialize(&mut *self.deserializer)?, self))
+        unimplemented!("enum variant_seed")
     }
 }
 
@@ -266,11 +266,11 @@ impl<'a, 'de, R: BencodeReader> serde::de::VariantAccess<'de> for DeserializerAc
             })
     }
 
-    fn struct_variant<V>(self, fields: &'static [&'static str], visitor: V) -> Result<V::Value>
+    fn struct_variant<V>(self, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
     where
         V: serde::de::Visitor<'de>,
     {
-        serde::de::Deserializer::deserialize_tuple(&mut *self.deserializer, fields.len(), visitor)
+        unimplemented!("struct_variant")
     }
 }
 

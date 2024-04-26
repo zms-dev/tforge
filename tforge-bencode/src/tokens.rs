@@ -33,6 +33,20 @@ impl TryFrom<u8> for Token {
     }
 }
 
+impl TryInto<u8> for Token {
+    type Error = Error;
+
+    fn try_into(self) -> Result<u8> {
+        match self {
+            Token::Int => Ok(TOKEN_INTEGER),
+            Token::Dict => Ok(TOKEN_DICT),
+            Token::List => Ok(TOKEN_LIST),
+            Token::End => Ok(TOKEN_END),
+            Token::Bytes => Err(Error::from_syntax("Cannot convert Bytes to u8")),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -50,5 +64,23 @@ mod tests {
         }
 
         assert!(Token::try_from(b'x').is_err());
+    }
+
+    #[test]
+    fn test_token_try_into() {
+        let result: u8 = Token::Int.try_into().unwrap();
+        assert_eq!(result, TOKEN_INTEGER);
+
+        let result: u8 = Token::Dict.try_into().unwrap();
+        assert_eq!(result, TOKEN_DICT);
+
+        let result: u8 = Token::List.try_into().unwrap();
+        assert_eq!(result, TOKEN_LIST);
+
+        let result: u8 = Token::End.try_into().unwrap();
+        assert_eq!(result, TOKEN_END);
+
+        let result: Result<u8> = Token::Bytes.try_into();
+        assert!(result.is_err());
     }
 }
