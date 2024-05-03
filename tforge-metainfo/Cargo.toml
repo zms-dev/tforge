@@ -8,3 +8,4 @@ serde = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
 tforge-bencode = { path = "../tforge-bencode" }
+pretty_assertions = { version = "1.4.0"}

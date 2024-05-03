@@ -13,6 +13,10 @@ impl<'ser, W: BencodeWriter> Serializer<'ser, W> {
     }
 }
 
+pub fn from_writer<'ser, W: BencodeWriter>(writer: &'ser mut W) -> Serializer<'ser, W> {
+    Serializer::from_writer(writer)
+}
+
 impl<'a, 'ser: 'a, W: BencodeWriter> serde::ser::Serializer for &'a mut Serializer<'ser, W> {
     type Ok = ();
     type Error = Error;

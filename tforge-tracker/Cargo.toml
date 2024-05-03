@@ -4,5 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true }
+serde_urlencoded = { version = "0.7.1" }
 
 [dev-dependencies]
+tforge-bencode = { path = "../tforge-bencode" }

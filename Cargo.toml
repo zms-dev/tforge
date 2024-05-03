@@ -5,8 +5,6 @@ members = [
     "tforge-metainfo", 
     "tforge-peer", 
     "tforge-tracker", 
-    "tforge-client",
-    "tforge-server",
 ]
 resolver = "2"
 
@@ -14,4 +12,5 @@ resolver = "2"
 anyhow = { version = "1.0.79" }
 tokio = { version = "1.35.1" }
 serde = { version = "1.0.198" }
+serde_with = { version = "3.8.0" }
 lazy_static = { version = "1.4.0" }

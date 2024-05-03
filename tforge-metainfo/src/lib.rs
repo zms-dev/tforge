@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct MetaInfo {
     /// NOTE: All fields must be sorted alphabetically!
 
@@ -30,7 +30,7 @@ pub struct MetaInfo {
     pub info: Info,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Info {
     /// NOTE: All fields must be sorted alphabetically!
 
@@ -46,7 +46,7 @@ pub struct Info {
     pub pieces: Vec<[u8; 20]>,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum FileInfo {
     /// NOTE: All fields must be sorted alphabetically!
@@ -58,14 +58,14 @@ pub enum FileInfo {
     },
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct File {
     pub length: usize,
     pub path: Vec<String>,
 }
 
 mod optional_system_time {
-    use serde::{Deserialize, Deserializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<std::time::SystemTime>, D::Error>
     where
@@ -75,10 +75,25 @@ mod optional_system_time {
             secs.map(|secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
         })
     }
+
+    pub fn serialize<S>(
+        data: &Option<std::time::SystemTime>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        data.map(|time| {
+            time.duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+        })
+        .serialize(serializer)
+    }
 }
 
 mod pieces_bytes {
-    use serde::{de::Visitor, Deserializer};
+    use serde::{de::Visitor, Deserializer, Serializer};
 
     struct PiecesVisitor;
 
@@ -107,49 +122,106 @@ mod pieces_bytes {
     {
         deserializer.deserialize_bytes(PiecesVisitor)
     }
+
+    pub fn serialize<S>(data: &Vec<[u8; 20]>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(&data.concat())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tforge_bencode::deserializer::Deserializer;
+    use std::{
+        io::{BufReader, Cursor},
+        path::Path,
+    };
+    use tforge_bencode::{deserializer::from_reader, serializer::from_writer};
 
     #[test]
-    fn test_deserialize() {
-        let test_data_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
+    fn test_bencode_real_torrent_file() {
+        let test_data_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
         let test_file = test_data_dir.join("ubuntu-23.10.1-desktop-amd64.iso.torrent");
-        let file = std::fs::File::open(test_file).unwrap();
-        let mut reader = std::io::BufReader::new(file);
-        let mut deserializer = Deserializer::from_reader(&mut reader);
-        let got: MetaInfo = serde::Deserialize::deserialize(&mut deserializer).unwrap();
-        let expected = MetaInfo {
-            announce: "https://torrent.ubuntu.com/announce".to_string(),
-            announce_list: Some(vec![
-                vec!["https://torrent.ubuntu.com/announce".to_string()],
-                vec!["https://ipv6.torrent.ubuntu.com/announce".to_string()],
-            ]),
+        let file_content = std::fs::read(&test_file).unwrap();
+
+        let mut reader = BufReader::new(Cursor::new(&file_content));
+        let meta_info: MetaInfo = from_reader(&mut reader).unwrap();
+
+        let mut buffer = Vec::new();
+        let mut writer = from_writer(&mut buffer);
+        meta_info.serialize(&mut writer).unwrap();
+
+        assert_eq!(&file_content, &buffer);
+    }
+
+    #[test]
+    fn test_bencode_single_file() {
+        let meta_info = MetaInfo {
+            announce: "http://example.com/announce".to_string(),
+            announce_list: Some(vec![vec!["http://example.com/announce".to_string()]]),
+            comment: Some("comment".to_string()),
+            created_by: Some("created_by".to_string()),
             creation_date: Some(
-                std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1697466120),
+                std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(123),
             ),
-            comment: Some("Ubuntu CD releases.ubuntu.com".to_string()),
-            created_by: Some("mktorrent 1.1".to_string()),
-            encoding: None,
+            encoding: Some("UTF-8".to_string()),
             info: Info {
-                name: "ubuntu-23.10.1-desktop-amd64.iso".to_string(),
-                piece_length: 262144,
-                pieces: vec![],
-                file_info: FileInfo::SingleFile { length: 5173995520 },
+                file_info: FileInfo::SingleFile { length: 123 },
+                name: "name".to_string(),
+                piece_length: 123,
+                pieces: vec![
+                    b"aaaaaaaaaaaaaaaaaaaa".to_owned(),
+                    b"bbbbbbbbbbbbbbbbbbbb".to_owned(),
+                ],
             },
         };
-        assert_eq!(got.announce, expected.announce);
-        assert_eq!(got.announce_list, expected.announce_list);
-        assert_eq!(got.creation_date, expected.creation_date);
-        assert_eq!(got.comment, expected.comment);
-        assert_eq!(got.created_by, expected.created_by);
-        assert_eq!(got.encoding, expected.encoding);
-        assert_eq!(got.info.name, expected.info.name);
-        assert_eq!(got.info.piece_length, expected.info.piece_length);
-        assert!(!got.info.pieces.is_empty());
-        assert_eq!(got.info.file_info, expected.info.file_info);
+
+        let mut buffer = Vec::new();
+        let mut writer = from_writer(&mut buffer);
+        meta_info.serialize(&mut writer).unwrap();
+
+        let mut reader = BufReader::new(Cursor::new(&buffer));
+        let decoded_meta_info: MetaInfo = from_reader(&mut reader).unwrap();
+
+        assert_eq!(meta_info, decoded_meta_info);
+    }
+
+    #[test]
+    fn test_bencode_multi_file() {
+        let meta_info = MetaInfo {
+            announce: "http://example.com/announce".to_string(),
+            announce_list: Some(vec![vec!["http://example.com/announce".to_string()]]),
+            comment: Some("comment".to_string()),
+            created_by: Some("created_by".to_string()),
+            creation_date: Some(
+                std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(123),
+            ),
+            encoding: Some("UTF-8".to_string()),
+            info: Info {
+                file_info: FileInfo::MultiFile {
+                    files: vec![File {
+                        length: 123,
+                        path: vec!["path".to_string()],
+                    }],
+                },
+                name: "name".to_string(),
+                piece_length: 123,
+                pieces: vec![
+                    b"aaaaaaaaaaaaaaaaaaaa".to_owned(),
+                    b"bbbbbbbbbbbbbbbbbbbb".to_owned(),
+                ],
+            },
+        };
+
+        let mut buffer = Vec::new();
+        let mut writer = from_writer(&mut buffer);
+        meta_info.serialize(&mut writer).unwrap();
+
+        let mut reader = BufReader::new(Cursor::new(&buffer));
+        let decoded_meta_info: MetaInfo = from_reader(&mut reader).unwrap();
+
+        assert_eq!(meta_info, decoded_meta_info);
     }
 }
