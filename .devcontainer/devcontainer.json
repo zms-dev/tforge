@@ -5,6 +5,7 @@
 		"ghcr.io/devcontainers/features/nix:1": {
 			"multiUser": true,
 			"version": "latest",
+			"packages": [],
 			"extraNixConfig": "experimental-features = nix-command flakes,trusted-users = root vscode"
 		},
 		"ghcr.io/devcontainers/features/common-utils:2": {
@@ -13,8 +14,9 @@
 		"ghcr.io/christophermacgown/devcontainer-features/direnv:1": {},
 		"ghcr.io/devcontainers-contrib/features/starship:1": {}
 	},
-	"postCreateCommand": "nix develop --check",
-	"updateContentCommand": "nix develop --build --accept-flake-config",
+	"onCreateCommand": {},
+	// "postCreateCommand": "nix develop --check",
+	// "updateContentCommand": "nix develop --build --accept-flake-config",
 	"postStartCommand": "direnv allow",
 	"mounts": [
 		"source=nix,target=/nix,type=volume",
@@ -37,17 +39,13 @@
 			],
 			"settings": {
 				"nix.enableLanguageServer": true,
-				"nix.serverPath": "/nix/store/mblhbcwvxick954fg148pr0nbq5kbcy6-nil-2023-08-09/bin/nil",
+				"nix.serverPath": "/nix/store/kcqp9b8a7f8p0c1gb3nix2ns37wlsncl-nil-2023-08-09/bin/nil",
 				"nix.serverSettings": {
 					"nil": {
-						"formatting": {
-							// Use 'nix fmt' for formatting
-							"command": [
-								"nix",
-								"fmt",
-								"--",
-								"-"
-							]
+						"nix": {
+							"flake": {
+								"autoArchive": true
+							}
 						}
 					}
 				},
@@ -70,7 +68,7 @@
 					"${workspaceFolder}/Cargo.toml"
 				],
 				"rust-analyzer.server.extraEnv": {
-					"PATH": "/nix/store/zf2yn0gs445cw4dgzhmyv4rwwkqbrs0c-rust-nightly-2024-03-10/bin:/usr/bin",
+					"PATH": "/nix/store/0fdn4rx38ilham7n6xr4rdbwp3f8xx0c-rust-nightly-2024-04-17/bin:/usr/bin",
 				},
 				"rust-analyzer.semanticHighlighting.punctuation.enable": true,
 				"rust-analyzer.procMacro.attributes.enable": true

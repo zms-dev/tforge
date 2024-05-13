@@ -10,20 +10,25 @@ pub struct MetaInfo {
     /// The announce-list is a list tracker URLs.
     /// This is an extention to the official specification
     #[serde(rename = "announce-list")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub announce_list: Option<Vec<Vec<String>>>,
 
     /// Free-form textual comments of the author
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
 
     /// Name and version of the program used to create the .torrent
     #[serde(rename = "created by")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub created_by: Option<String>,
 
     /// The creation time of the torrent
     #[serde(rename = "creation date", with = "optional_system_time")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub creation_date: Option<std::time::SystemTime>,
 
     /// The string encoding format used to generate the pieces part of the info dictionary
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub encoding: Option<String>,
 
     /// A dictionary that describes the file(s) of the torrent.

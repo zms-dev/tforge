@@ -27,18 +27,23 @@ pub struct TrackerRequest {
     pub compact: bool, // TODO: should be int
 
     /// If specified, must be one of started, completed, stopped,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub event: Option<TrackerEvent>,
 
     /// The true IP address of the client machine, in dotted quad format or rfc3513 defined hexed IPv6 address.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ip: Option<std::net::IpAddr>,
 
     /// Number of peers that the client would like to receive from the tracker.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub numwant: Option<usize>,
 
     ///  An additional identification that is not shared with any other peers. It is intended to allow a client to prove their identity should their IP address change.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
 
     /// If a previous announce contained a tracker id, it should be set here
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub trackerid: Option<String>,
 }
 
@@ -79,6 +84,7 @@ pub struct TrackerResponseSuccess {
 
     /// Minimum announce interval. If present clients must not reannounce more frequently than this.
     #[serde(rename = "min interval")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub min_interval: Option<usize>,
 
     /// list of peers
@@ -86,10 +92,12 @@ pub struct TrackerResponseSuccess {
 
     /// A string that the client should send back on its next announcements. If absent and a previous announce sent a tracker id, do not discard the old value; keep using it.
     #[serde(rename = "tracker id")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tracker_id: Option<String>,
 
     /// Similar to failure reason, but the response still gets processed normally. The warning message is shown just like an error.
     #[serde(rename = "warning message")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub warning_message: Option<String>,
 }
 

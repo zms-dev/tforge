@@ -2,25 +2,21 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    naersk.url = "github:nix-community/naersk";
   };
 
-  outputs = { self, nixpkgs, flake-utils, fenix, ... }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, naersk, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let 
-        overlays = [
-          fenix.overlays.default
-        ];
         pkgs = import nixpkgs { 
-          inherit system overlays;
+          inherit system;
+           overlays = [(import rust-overlay)];
         };
-        toolchain = fenix.packages.${system}.fromToolchainFile {
-          file = ./rust-toolchain.toml;
-          # sha256 = nixpkgs.lib.fakeSha256;
-          sha256 = "sha256-o+ymjPUfTAzCiFp6qdcPpjus293CYYNvW+mP9TIPaT0=";
+        rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+        naersk = pkgs.callPackage naersk {
+          cargo = rust;
+          rustc = rust;
         };
       in 
       {
@@ -31,15 +27,16 @@
             gcc
             openssl.dev
             pkg-config
-            toolchain
+            rust
             cargo-expand
             cargo-watch
             nil
           ];
 
-          buildInputs = with pkgs; [
-            toolchain
-          ];
+          RUST_PATH = "${rust}";
+          RUST_DOC_PATH = "${rust}/share/doc/rust/html/std/index.html";
         };
+
+        # defaultPackage = naersk.buildPackage ./.;
       });
 }
