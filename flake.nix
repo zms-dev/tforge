@@ -4,9 +4,21 @@
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay.url = "github:oxalica/rust-overlay";
     naersk.url = "github:nix-community/naersk";
+    nix-github-actions = {
+      url = "github:nix-community/nix-github-actions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, naersk, ... }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    rust-overlay,
+    naersk,
+    nix-github-actions,
+    ...
+  }:
     flake-utils.lib.eachDefaultSystem (system:
       let 
         pkgs = import nixpkgs { 
@@ -39,4 +51,6 @@
 
         # defaultPackage = naersk.buildPackage ./.;
       });
+
+  githubActions = nix-github-actions.lib.mkGithubMatrix { inherit (self) checks; };
 }

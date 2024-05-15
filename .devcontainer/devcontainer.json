@@ -35,7 +35,8 @@
 				"Equinusocio.vsc-material-theme-icons",
 				"1YiB.rust-bundle",
 				"tamasfe.even-better-toml",
-				"wayou.vscode-todo-highlight"
+				"wayou.vscode-todo-highlight",
+				"yzhang.markdown-all-in-one"
 			],
 			"settings": {
 				"nix.enableLanguageServer": true,
