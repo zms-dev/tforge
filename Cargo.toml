@@ -2,6 +2,7 @@
 members = [
     "tforge", 
     "tforge-bencode", 
+    "tforge-config",
     "tforge-metainfo", 
     "tforge-peer", 
     "tforge-tracker", 

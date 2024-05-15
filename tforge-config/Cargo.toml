@@ -1,10 +1,9 @@
 [package]
-name = "tforge-metainfo"
+name = "tforge-config"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
-
-[dev-dependencies]
-tforge-bencode = { path = "../tforge-bencode" }
+toml = { version = "0.8.12" }
+anyhow = { workspace = true }
