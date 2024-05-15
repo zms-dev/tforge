@@ -36,7 +36,8 @@
 				"1YiB.rust-bundle",
 				"tamasfe.even-better-toml",
 				"wayou.vscode-todo-highlight",
-				"yzhang.markdown-all-in-one"
+				"yzhang.markdown-all-in-one",
+				"github.vscode-github-actions"
 			],
 			"settings": {
 				"nix.enableLanguageServer": true,

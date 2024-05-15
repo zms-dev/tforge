@@ -4,10 +4,8 @@
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay.url = "github:oxalica/rust-overlay";
     naersk.url = "github:nix-community/naersk";
-    nix-github-actions = {
-      url = "github:nix-community/nix-github-actions";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nix-github-actions.url = "github:nix-community/nix-github-actions";
+    nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
@@ -26,7 +24,7 @@
            overlays = [(import rust-overlay)];
         };
         rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-        naersk = pkgs.callPackage naersk {
+        naersk' = pkgs.callPackage naersk {
           cargo = rust;
           rustc = rust;
         };
@@ -49,7 +47,10 @@
           RUST_DOC_PATH = "${rust}/share/doc/rust/html/std/index.html";
         };
 
-        # defaultPackage = naersk.buildPackage ./.;
+        checks.default = naersk'.buildPackage {
+            src = ./.;
+            mode = "test";
+        };
 
         githubActions = nix-github-actions.lib.mkGithubMatrix { inherit (self) checks; };
       });
