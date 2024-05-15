@@ -49,16 +49,27 @@
 
         packages.default = naersk'.buildPackage {
             src = ./.;
+            buildInputs = with pkgs; [
+              openssl.dev
+              pkg-config
+            ];
         };
 
         checks.default = naersk'.buildPackage {
             src = ./.;
             mode = "test";
+            buildInputs = with pkgs; [
+              openssl.dev
+              pkg-config
+            ];
         };
       })
       // ({
         githubActions = nix-github-actions.lib.mkGithubMatrix {
-          checks = nixpkgs.lib.getAttrs [ "x86_64-linux" "x86_64-darwin" ] self.checks;
+          checks = nixpkgs.lib.getAttrs [
+            flake-utils.lib.system.x86_64-linux
+            flake-utils.lib.system.x86_64-darwin
+          ] self.checks;
         };
       });
 }
