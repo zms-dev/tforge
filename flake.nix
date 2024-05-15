@@ -50,6 +50,7 @@
         packages.default = naersk'.buildPackage {
             src = ./.;
             buildInputs = with pkgs; [
+              gcc
               openssl.dev
               pkg-config
             ];
@@ -59,6 +60,7 @@
             src = ./.;
             mode = "test";
             buildInputs = with pkgs; [
+              gcc
               openssl.dev
               pkg-config
             ];
