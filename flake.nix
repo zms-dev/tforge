@@ -50,9 +50,10 @@
         packages.default = naersk'.buildPackage {
             src = ./.;
             buildInputs = with pkgs; [
-              gcc
               openssl.dev
               pkg-config
+            ] ++ pkgs.lib.optionals pkg.stdenv.isDarwin [
+              darwin.apple_sdk.frameworks.SystemConfiguration
             ];
         };
 
