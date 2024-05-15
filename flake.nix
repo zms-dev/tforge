@@ -50,7 +50,7 @@
         };
 
         # defaultPackage = naersk.buildPackage ./.;
-      });
 
-  githubActions = nix-github-actions.lib.mkGithubMatrix { inherit (self) checks; };
+        githubActions = nix-github-actions.lib.mkGithubMatrix { inherit (self) checks; };
+      });
 }
