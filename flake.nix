@@ -47,11 +47,18 @@
           RUST_DOC_PATH = "${rust}/share/doc/rust/html/std/index.html";
         };
 
+        packages.default = naersk'.buildPackage {
+            src = ./.;
+        };
+
         checks.default = naersk'.buildPackage {
             src = ./.;
             mode = "test";
         };
-
-        githubActions = nix-github-actions.lib.mkGithubMatrix { inherit (self) checks; };
+      })
+      // ({
+        githubActions = nix-github-actions.lib.mkGithubMatrix {
+          checks = nixpkgs.lib.getAttrs [ "x86_64-linux" "x86_64-darwin" ] self.checks;
+        };
       });
 }
