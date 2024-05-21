@@ -41,6 +41,8 @@
             cargo-expand
             cargo-watch
             nil
+          ] ++ pkgs.lib.optionals pkg.stdenv.isDarwin [
+            darwin.apple_sdk.frameworks.SystemConfiguration
           ];
 
           RUST_PATH = "${rust}";

@@ -7,3 +7,10 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tforge-config = { path = "../tforge-config" }
+tforge-metainfo = { path = "../tforge-metainfo" }
+tforge-peer = { path = "../tforge-peer" }
+tforge-tracker = { path = "../tforge-tracker" }
+tforge-bencode = { path = "../tforge-bencode" }

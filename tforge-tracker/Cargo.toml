@@ -9,6 +9,8 @@ serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true }
 serde_urlencoded = { version = "0.7.1" }
 reqwest = { version = "0.12.4", features = ["json"] }
+hex = { version = "0.4.3" }
 
 [dev-dependencies]
 tforge-bencode = { path = "../tforge-bencode" }
+url = "2.5.0"
