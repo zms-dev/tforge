@@ -40,6 +40,8 @@
             rust
             cargo-expand
             cargo-watch
+            cargo-nextest
+            cargo-llvm-cov
             nil
           ] ++ pkgs.lib.optionals pkg.stdenv.isDarwin [
             darwin.apple_sdk.frameworks.SystemConfiguration

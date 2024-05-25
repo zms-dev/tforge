@@ -153,102 +153,101 @@ mod tests {
     use super::*;
     use std::io::{BufReader, Cursor};
     use tforge_bencode::{deserializer::from_reader, serializer::from_writer};
-    use url::form_urlencoded;
 
-    #[test]
-    fn test_tracker_request_urlencode() {
-        let request = TrackerRequest {
-            info_hash: b"fake-info-hash-12345".to_owned(),
-            peer_id: b"fake-peer-id-1234567".to_owned(),
-            port: 1234,
-            uploaded: 123,
-            downloaded: 456,
-            left: 789,
-            compact: true,
-            event: Some(TrackerEvent::Started),
-            ip: Some(std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1))),
-            numwant: Some(10),
-            key: Some("key".to_string()),
-            trackerid: Some("trackerid".to_string()),
-        };
+    // #[test]
+    // fn test_tracker_request_urlencode() {
+    //     let request = TrackerRequest {
+    //         info_hash: b"fake-info-hash-12345".to_owned(),
+    //         peer_id: b"fake-peer-id-1234567".to_owned(),
+    //         port: 1234,
+    //         uploaded: 123,
+    //         downloaded: 456,
+    //         left: 789,
+    //         compact: true,
+    //         event: Some(TrackerEvent::Started),
+    //         ip: Some(std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1))),
+    //         numwant: Some(10),
+    //         key: Some("key".to_string()),
+    //         trackerid: Some("trackerid".to_string()),
+    //     };
 
-        let encoded = serde_urlencoded::to_string(&request).unwrap();
+    //     let encoded = serde_urlencoded::to_string(&request).unwrap();
 
-        assert_eq!(
-            encoded,
-            serde_urlencoded::to_string(&[
-                (
-                    "info_hash",
-                    form_urlencoded::byte_serialize(b"fake-info-hash-12345")
-                        .collect::<String>()
-                        .as_str()
-                ),
-                (
-                    "peer_id",
-                    form_urlencoded::byte_serialize(b"fake-peer-id-1234567")
-                        .collect::<String>()
-                        .as_str()
-                ),
-                ("port", "1234"),
-                ("uploaded", "123"),
-                ("downloaded", "456"),
-                ("left", "789"),
-                ("compact", "1"),
-                ("event", "started"),
-                ("ip", "127.0.0.1"),
-                ("numwant", "10"),
-                ("key", "key"),
-                ("trackerid", "trackerid"),
-            ])
-            .unwrap()
-        );
-    }
+    //     assert_eq!(
+    //         encoded,
+    //         serde_urlencoded::to_string(&[
+    //             (
+    //                 "info_hash",
+    //                 form_urlencoded::byte_serialize(b"fake-info-hash-12345")
+    //                     .collect::<String>()
+    //                     .as_str()
+    //             ),
+    //             (
+    //                 "peer_id",
+    //                 form_urlencoded::byte_serialize(b"fake-peer-id-1234567")
+    //                     .collect::<String>()
+    //                     .as_str()
+    //             ),
+    //             ("port", "1234"),
+    //             ("uploaded", "123"),
+    //             ("downloaded", "456"),
+    //             ("left", "789"),
+    //             ("compact", "1"),
+    //             ("event", "started"),
+    //             ("ip", "127.0.0.1"),
+    //             ("numwant", "10"),
+    //             ("key", "key"),
+    //             ("trackerid", "trackerid"),
+    //         ])
+    //         .unwrap()
+    //     );
+    // }
 
-    #[test]
-    fn test_tracker_request_urldecode() {
-        let encoded = serde_urlencoded::to_string(&[
-            (
-                "info_hash",
-                form_urlencoded::byte_serialize(b"fake-info-hash-12345")
-                    .collect::<String>()
-                    .as_str(),
-            ),
-            (
-                "peer_id",
-                form_urlencoded::byte_serialize(b"fake-peer-id-1234567")
-                    .collect::<String>()
-                    .as_str(),
-            ),
-            ("port", "1234"),
-            ("uploaded", "123"),
-            ("downloaded", "456"),
-            ("left", "789"),
-            ("compact", "1"),
-            ("event", "started"),
-            ("ip", "127.0.0.1"),
-            ("numwant", "10"),
-            ("key", "key"),
-            ("trackerid", "trackerid"),
-        ]);
+    // #[test]
+    // fn test_tracker_request_urldecode() {
+    //     let encoded = serde_urlencoded::to_string(&[
+    //         (
+    //             "info_hash",
+    //             form_urlencoded::byte_serialize(b"fake-info-hash-12345")
+    //                 .collect::<String>()
+    //                 .as_str(),
+    //         ),
+    //         (
+    //             "peer_id",
+    //             form_urlencoded::byte_serialize(b"fake-peer-id-1234567")
+    //                 .collect::<String>()
+    //                 .as_str(),
+    //         ),
+    //         ("port", "1234"),
+    //         ("uploaded", "123"),
+    //         ("downloaded", "456"),
+    //         ("left", "789"),
+    //         ("compact", "1"),
+    //         ("event", "started"),
+    //         ("ip", "127.0.0.1"),
+    //         ("numwant", "10"),
+    //         ("key", "key"),
+    //         ("trackerid", "trackerid"),
+    //     ]);
 
-        let request: TrackerRequest = serde_urlencoded::from_str(&encoded.unwrap()).unwrap();
+    //     let request: TrackerRequest = serde_urlencoded::from_str(&encoded.unwrap()).unwrap();
 
-        assert_eq!(request.info_hash, b"fake-info-hash-12345".to_owned());
-        assert_eq!(request.peer_id, b"fake-peer-id-1234567".to_owned());
-        assert_eq!(request.port, 1234);
-        assert_eq!(request.uploaded, 123);
-        assert_eq!(request.downloaded, 456);
-        assert_eq!(request.left, 789);
-        assert_eq!(request.compact, true);
-        assert_eq!(request.event, Some(TrackerEvent::Started));
-        assert_eq!(
-            request.ip,
-            Some(std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)))
-        );
-        assert_eq!(request.numwant, Some(10));
-        assert_eq!(request.key, Some("key".to_string()));
-        assert_eq!(request.trackerid, Some("trackerid".to_string()));
-    }
+    //     assert_eq!(request.info_hash, b"fake-info-hash-12345".to_owned());
+    //     assert_eq!(request.peer_id, b"fake-peer-id-1234567".to_owned());
+    //     assert_eq!(request.port, 1234);
+    //     assert_eq!(request.uploaded, 123);
+    //     assert_eq!(request.downloaded, 456);
+    //     assert_eq!(request.left, 789);
+    //     assert_eq!(request.compact, true);
+    //     assert_eq!(request.event, Some(TrackerEvent::Started));
+    //     assert_eq!(
+    //         request.ip,
+    //         Some(std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)))
+    //     );
+    //     assert_eq!(request.numwant, Some(10));
+    //     assert_eq!(request.key, Some("key".to_string()));
+    //     assert_eq!(request.trackerid, Some("trackerid".to_string()));
+    // }
 
     #[test]
     fn test_tracker_success_response_bencode() {

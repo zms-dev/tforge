@@ -6,6 +6,7 @@ members = [
     "tforge-metainfo", 
     "tforge-peer", 
     "tforge-tracker", 
+    "tforge-urlencoded",
 ]
 resolver = "2"
 
