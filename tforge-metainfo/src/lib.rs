@@ -128,7 +128,7 @@ mod pieces_bytes {
         deserializer.deserialize_bytes(PiecesVisitor)
     }
 
-    pub fn serialize<S>(data: &Vec<[u8; 20]>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(data: &[[u8; 20]], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -149,7 +149,7 @@ mod tests {
     fn test_bencode_real_torrent_file() {
         let test_data_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
         let test_file = test_data_dir.join("ubuntu-23.10.1-desktop-amd64.iso.torrent");
-        let file_content = std::fs::read(&test_file).unwrap();
+        let file_content = std::fs::read(test_file).unwrap();
 
         let mut reader = BufReader::new(Cursor::new(&file_content));
         let meta_info: MetaInfo = from_reader(&mut reader).unwrap();

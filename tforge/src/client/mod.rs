@@ -19,18 +19,18 @@ pub async fn main(config: &PathBuf, torrent: &PathBuf) -> Result<()> {
 
     let client = TrackerClient::new(metainfo.announce, None);
     let request = TrackerRequest {
-        info_hash: todo!(),
-        peer_id: todo!(),
-        port: todo!(),
-        uploaded: todo!(),
-        downloaded: todo!(),
-        left: todo!(),
-        compact: todo!(),
-        event: todo!(),
-        ip: todo!(),
-        numwant: todo!(),
-        key: todo!(),
-        trackerid: todo!(),
+        info_hash: *b"1234567890-abcedfghi",
+        peer_id: *b"1234567890-abcedfghi",
+        port: 12345,
+        uploaded: 0,
+        downloaded: 0,
+        left: 0,
+        compact: false,
+        event: None,
+        ip: None,
+        numwant: None,
+        key: None,
+        trackerid: None,
     };
 
     let response = client.announce(request).await?;

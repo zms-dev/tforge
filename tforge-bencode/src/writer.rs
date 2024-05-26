@@ -17,28 +17,28 @@ pub trait BencodeWriter {
 
 impl<T: Write> BencodeWriter for T {
     fn write_token(&mut self, value: Token) -> Result<()> {
-        self.write(&[value.try_into()?])?;
+        self.write_all(&[value.try_into()?])?;
         Ok(())
     }
 
     fn write_signed_integer(&mut self, value: i64) -> Result<()> {
         self.write_token(Token::Int)?;
-        self.write(&value.to_string().as_bytes())?;
+        self.write_all(value.to_string().as_bytes())?;
         self.write_token(Token::End)?;
         Ok(())
     }
 
     fn write_unsigned_integer(&mut self, value: u64) -> Result<()> {
         self.write_token(Token::Int)?;
-        self.write(&value.to_string().as_bytes())?;
+        self.write_all(value.to_string().as_bytes())?;
         self.write_token(Token::End)?;
         Ok(())
     }
 
     fn write_bytes(&mut self, value: &[u8]) -> Result<()> {
-        self.write(&value.len().to_string().as_bytes())?;
-        self.write(&[TOKEN_DELIM])?;
-        self.write(value)?;
+        self.write_all(value.len().to_string().as_bytes())?;
+        self.write_all(&[TOKEN_DELIM])?;
+        self.write_all(value)?;
         Ok(())
     }
 

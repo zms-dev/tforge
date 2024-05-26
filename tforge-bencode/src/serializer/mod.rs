@@ -13,7 +13,7 @@ impl<'ser, W: BencodeWriter> Serializer<'ser, W> {
     }
 }
 
-pub fn from_writer<'ser, W: BencodeWriter>(writer: &'ser mut W) -> Serializer<'ser, W> {
+pub fn from_writer<W: BencodeWriter>(writer: &'_ mut W) -> Serializer<'_, W> {
     Serializer::from_writer(writer)
 }
 

@@ -23,7 +23,7 @@ impl<T: BufRead> BencodeReader for T {
         if buf.is_empty() {
             return Err(Error::EOF);
         }
-        Ok(Token::try_from(buf[0])?)
+        Token::try_from(buf[0])
     }
 
     fn consume_current_token(&mut self) -> Result<()> {

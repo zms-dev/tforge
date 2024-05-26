@@ -10,7 +10,7 @@ impl TrackerClient {
     pub fn new(announce_url: String, client: Option<reqwest::Client>) -> Self {
         Self {
             announce_url,
-            client: client.unwrap_or_else(reqwest::Client::new),
+            client: client.unwrap_or_default(),
         }
     }
 }

@@ -1,3 +1,5 @@
+use std::fmt::{Display, Write};
+
 #[derive(Debug, PartialEq)]
 pub enum Value {
     String(String),
@@ -6,21 +8,19 @@ pub enum Value {
     None(),
 }
 
-impl Value {
-    pub fn to_string(&self) -> String {
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::String(s) => s.clone(),
+            Value::String(s) => write!(f, "{}", s),
             Value::List(l) => {
-                let mut s = String::new();
+                write!(f, "[")?;
                 for v in l {
-                    s.push_str(&v.to_string());
+                    write!(f, "{}", v)?;
                 }
-                s
+                write!(f, "]")
             }
-            Value::Named(n, v) => {
-                format!("{}={}", n, v.to_string())
-            }
-            Value::None() => "".to_string(),
+            Value::Named(n, v) => write!(f, "{}={}", n, v),
+            Value::None() => Ok(()),
         }
     }
 }
@@ -98,8 +98,8 @@ fn encode_chars(chars: &str) -> String {
 }
 
 fn encode_bytes(bytes: &[u8]) -> String {
-    bytes
-        .iter()
-        .map(|byte| format!("%{:X}", byte))
-        .collect::<String>()
+    bytes.iter().fold(String::new(), |mut output, b| {
+        let _ = write!(output, "%{b:02X}");
+        output
+    })
 }

@@ -1,7 +1,6 @@
 use anyhow::{Context, Error, Result};
 use serde::Deserialize;
 use serde_with::{serde_as, Bytes};
-use toml;
 
 #[serde_as]
 #[derive(Deserialize, Debug, PartialEq)]
@@ -47,11 +46,11 @@ mod tests {
             peer_id = "1234567890-abcedfghi"
         "#;
         let result = ClientConfig::try_from(contents);
-        assert!(!result.is_err());
+        assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
             ClientConfig {
-                peer_id: b"1234567890-abcedfghi".clone()
+                peer_id: *b"1234567890-abcedfghi"
             }
         );
     }
@@ -76,7 +75,7 @@ mod tests {
     fn test_try_from_server_config() {
         let contents = "";
         let result = ServerConfig::try_from(contents);
-        assert!(!result.is_err());
+        assert!(result.is_ok());
         assert_eq!(result.unwrap(), ServerConfig {});
     }
 }
