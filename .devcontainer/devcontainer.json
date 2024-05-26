@@ -9,6 +9,7 @@
 			"extraNixConfig": "experimental-features = nix-command flakes,trusted-users = root vscode"
 		},
 		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
 			"configureZshAsDefaultShell": true
 		},
 		"ghcr.io/christophermacgown/devcontainer-features/direnv:1": {},
