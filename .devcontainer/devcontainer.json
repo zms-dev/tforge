@@ -43,7 +43,7 @@
 			],
 			"settings": {
 				"nix.enableLanguageServer": true,
-				"nix.serverPath": "/nix/store/kcqp9b8a7f8p0c1gb3nix2ns37wlsncl-nil-2023-08-09/bin/nil",
+				"nix.serverPath": "/nix/store/9bdqsiqb1nqd99r5drfmp8sxnsp18bk3-nil-2023-08-09/bin/nil",
 				"nix.serverSettings": {
 					"nil": {
 						"nix": {
@@ -72,7 +72,7 @@
 					"${workspaceFolder}/Cargo.toml"
 				],
 				"rust-analyzer.server.extraEnv": {
-					"PATH": "/nix/store/0fdn4rx38ilham7n6xr4rdbwp3f8xx0c-rust-nightly-2024-04-17/bin:/usr/bin",
+					"PATH": "/nix/store/s3dw374jvad0302rsq04lgjz4qm6g4fp-rust-default-1.80.0-nightly-2024-05-15/bin:/usr/bin",
 				},
 				"rust-analyzer.semanticHighlighting.punctuation.enable": true,
 				"rust-analyzer.procMacro.attributes.enable": true

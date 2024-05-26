@@ -41,15 +41,16 @@
           version = "0.1.0";
 
           inherit src;
+          strictDeps = true;
 
-          buildInputs = with pkgs; [
-            openssl.dev
-          ] ++ pkgs.lib.optionals pkg.stdenv.isDarwin [
-            darwin.apple_sdk.frameworks.SystemConfiguration
+          buildInputs = [
+            pkgs.openssl
+          ] ++ lib.optionals pkgs.stdenv.isDarwin [
+            pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
           ];
 
-          nativeBuildInputs = with pkgs; [
-            pkg-config # for openssl
+          nativeBuildInputs = [
+            pkgs.pkg-config
           ];
         };
 
@@ -79,33 +80,56 @@
         });
       in 
       {
-        packages.default = workspace;
-        packages.cargo-llvm-cov = workspace-cargo-llvm-cov;
+        packages = {
+          default = workspace;
+          cargo-llvm-cov = workspace-cargo-llvm-cov;
+        };
 
-        checks.clippy = workspace-clippy;
-        checks.cargo-doc = workspace-cargo-doc;
-        checks.cargo-nextest = workspace-cargo-nextest;
+        checks = {
+          inherit workspace;
+
+          clippy = workspace-clippy;
+          cargo-doc = workspace-cargo-doc;
+          cargo-nextest = workspace-cargo-nextest;
+        };
 
         apps.default = flake-utils.lib.mkApp {
           drv = workspace;
         };
 
-        devShells.default = craneLib.devShell {
-          inputsFrom = [workspace];
+        devShells = {
+          default = craneLib.devShell {
+            checks = self.checks.${system};
 
-          packages = with pkgs; [
-            gcc
-            rustToolchain
-            cargo-expand
-            cargo-watch
-            cargo-nextest
-            cargo-llvm-cov
-            nil
-          ];
+            packages = with pkgs; [
+              gcc
+              cargo-watch
+              cargo-deny
+              cargo-audit
+              cargo-update
+              cargo-edit
+              cargo-outdated
+              cargo-license
+              cargo-tarpaulin
+              cargo-nextest
+              cargo-spellcheck
+              cargo-modules
+              cargo-bloat
+              cargo-expand
+              cargo-llvm-cov
+              nil
+            ];
 
-          RUST_PATH = "${rustToolchain}";
-          RUST_DOC_PATH = "${rustToolchain}/share/doc/rust/html/std/index.html";
-          RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
+            RUST_PATH = "${rustToolchain}";
+            RUST_DOC_PATH = "${rustToolchain}/share/doc/rust/html/std/index.html";
+            RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
+
+            OPENSSL_DIR = "${pkgs.openssl.dev}";
+            OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+            OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include/";
+
+            PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
+          };
         };
       }) // ({
         githubActions = nix-github-actions.lib.mkGithubMatrix {

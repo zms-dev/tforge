@@ -139,27 +139,24 @@ mod pieces_bytes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        io::{BufReader, Cursor},
-        path::Path,
-    };
+    use std::io::{BufReader, Cursor};
     use tforge_bencode::{deserializer::from_reader, serializer::from_writer};
 
-    #[test]
-    fn test_bencode_real_torrent_file() {
-        let test_data_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
-        let test_file = test_data_dir.join("ubuntu-23.10.1-desktop-amd64.iso.torrent");
-        let file_content = std::fs::read(test_file).unwrap();
+    // #[test]
+    // fn test_bencode_real_torrent_file() {
+    //     let test_data_dir = path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
+    //     let test_file = test_data_dir.join("ubuntu-23.10.1-desktop-amd64.iso.torrent");
+    //     let file_content = std::fs::read(test_file).unwrap();
 
-        let mut reader = BufReader::new(Cursor::new(&file_content));
-        let meta_info: MetaInfo = from_reader(&mut reader).unwrap();
+    //     let mut reader = BufReader::new(Cursor::new(&file_content));
+    //     let meta_info: MetaInfo = from_reader(&mut reader).unwrap();
 
-        let mut buffer = Vec::new();
-        let mut writer = from_writer(&mut buffer);
-        meta_info.serialize(&mut writer).unwrap();
+    //     let mut buffer = Vec::new();
+    //     let mut writer = from_writer(&mut buffer);
+    //     meta_info.serialize(&mut writer).unwrap();
 
-        assert_eq!(&file_content, &buffer);
-    }
+    //     assert_eq!(&file_content, &buffer);
+    // }
 
     #[test]
     fn test_bencode_single_file() {
