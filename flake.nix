@@ -2,56 +2,68 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    fenix.url = "github:nix-community/fenix";
+    fenix.inputs.nixpkgs.follows = "nixpkgs";
+    fenix.inputs.rust-analyzer-src.follows = "";
     crane.url = "github:ipetkov/crane";
     crane.inputs.nixpkgs.follows = "nixpkgs";
     nix-github-actions.url = "github:nix-community/nix-github-actions";
     nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
-    advisory-db.url = "github:rustsec/advisory-db";
-    advisory-db.flake = false;
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+    pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-    rust-overlay,
-    crane,
-    nix-github-actions,
-    advisory-db,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let 
-        pkgs = import nixpkgs { 
+  outputs =
+    { self
+    , nixpkgs
+    , flake-utils
+    , fenix
+    , crane
+    , nix-github-actions
+    , pre-commit-hooks
+    , ...
+    }:
+    flake-utils.lib.eachDefaultSystem
+      (system:
+      let
+        pkgs = import nixpkgs {
           inherit system;
-          overlays = [(import rust-overlay)];
+          overlays = [ fenix.overlays.default ];
         };
 
         inherit (pkgs) lib;
 
-        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+        rustToolchain = fenix.packages.${system}.fromToolchainFile {
+          file = ./rust-toolchain.toml;
+          # sha256 = pkgs.lib.fakeSha256;
+          sha256 = "sha256-UEZYwK60IvJvS7qs+vyVRQeJE6joF9SEcHoNqvIhShw=";
+        };
+
+        fenix-pkgs = fenix.packages.${system};
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
         src = craneLib.cleanCargoSource (craneLib.path ./.);
 
+        buildInputs = [
+          pkgs.openssl
+        ] ++ lib.optionals pkgs.stdenv.isDarwin [
+          pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
+          pkgs.libiconv
+        ];
+
+        nativeBuildInputs = [
+          pkgs.pkg-config
+        ];
+
         commonArgs = {
           pname = "tforge";
           version = "0.1.0";
 
-          inherit src;
           strictDeps = true;
-
-          buildInputs = [
-            pkgs.openssl
-          ] ++ lib.optionals pkgs.stdenv.isDarwin [
-            pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
-          ];
-
-          nativeBuildInputs = [
-            pkgs.pkg-config
-          ];
+          inherit src;
+          inherit buildInputs;
+          inherit nativeBuildInputs;
         };
 
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
@@ -78,7 +90,22 @@
         workspace-cargo-llvm-cov = craneLib.cargoLlvmCov (commonArgs // {
           inherit cargoArtifacts;
         });
-      in 
+
+        workspace-pre-commit-check = pre-commit-hooks.lib.${system}.run {
+          inherit src;
+          hooks = {
+            nixpkgs-fmt.enable = true;
+            rustfmt.enable = true;
+            clippy.enable = true;
+            cargo-check.enable = true;
+          };
+          tools = {
+            rustfmt = rustToolchain;
+            clippy = rustToolchain;
+            cargo = rustToolchain;
+          };
+        };
+      in
       {
         packages = {
           default = workspace;
@@ -99,6 +126,8 @@
 
         devShells = {
           default = craneLib.devShell {
+            inherit (workspace-pre-commit-check) shellHook;
+
             checks = self.checks.${system};
 
             packages = with pkgs; [
@@ -118,7 +147,7 @@
               cargo-expand
               cargo-llvm-cov
               nil
-            ];
+            ] ++ workspace-pre-commit-check.enabledPackages;
 
             RUST_PATH = "${rustToolchain}";
             RUST_DOC_PATH = "${rustToolchain}/share/doc/rust/html/std/index.html";
@@ -132,11 +161,12 @@
           };
         };
       }) // ({
-        githubActions = nix-github-actions.lib.mkGithubMatrix {
-          checks = nixpkgs.lib.getAttrs [
-            flake-utils.lib.system.x86_64-linux
-            flake-utils.lib.system.x86_64-darwin
-          ] self.checks;
-        };
-      });
+      githubActions = nix-github-actions.lib.mkGithubMatrix {
+        checks = nixpkgs.lib.getAttrs [
+          flake-utils.lib.system.x86_64-linux
+          flake-utils.lib.system.x86_64-darwin
+        ]
+          self.checks;
+      };
+    });
 }

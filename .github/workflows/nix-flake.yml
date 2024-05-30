@@ -1,4 +1,4 @@
-name: Nix Flake actions
+name: Nix Flake
 
 on:
   pull_request:
